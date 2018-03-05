@@ -25,6 +25,17 @@ from . import constants
 LOCAL = {}
 UPDATE = {}
 
+def _adjacent(dt_before=None, dt_after=None):
+    r'''
+    If both dt_before and dt_after are defined, return if they are adjacent
+    If only one defined, return its adjacent counterpart
+    '''
+    if dt_before is None:
+        return dt_after - timedelta(days=1)
+    if dt_after is None:
+        return dt_before + timedelta(days=1)
+    return (dt_after - dt_before == timedelta(days=1))
+
 def _source_local():
     r''' Sources archive index file into LOCAL '''
     config = SafeConfigParser()
@@ -84,10 +95,8 @@ def _save_local(df, ts, dt_start, dt_end):
     csv_output = df.to_csv(header=False)
     file_name = ''
 
-    prepend_date = (dt_start
-            - timedelta(days=1)).strftime(constants.TIME_FORMAT)
-    append_date = (dt_end
-            + timedelta(days=1)).strftime(constants.TIME_FORMAT)
+    prepend_date = _adjacent(dt_after=dt_start).strftime(constants.TIME_FORMAT)
+    append_date = _adjacent(dt_before=dt_end).strftime(constants.TIME_FORMAT)
 
     # Append to previous store, if connected
     connected_file = glob('{}*{}.csv'.format(out_dir, prepend_date))
