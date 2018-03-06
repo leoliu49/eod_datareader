@@ -36,6 +36,43 @@ def _adjacent(dt_before=None, dt_after=None):
         return dt_before + timedelta(days=1)
     return (dt_after - dt_before == timedelta(days=1))
 
+def _merge_indices(local, update):
+    r''' Merge sorted lists, then morph connected clusters together '''
+    new = []
+    u = 0
+    l = 0
+    u_len = len(update)
+    l_len = len(local)
+    while u < u_len and l < l_len:
+        u_s = datetime.strptime(update[u][0], constants.TIME_FORMAT)
+        l_s = datetime.strptime(local[l][0], constants.TIME_FORMAT)
+        if u_s < l_s:
+            new.append(update[u])
+            u += 1
+        else:
+            new.append(local[l])
+            l += 1
+    while u < u_len:
+        new.append(update[u])
+        u += 1
+    while l < l_len:
+        new.append(local[l])
+        l += 1
+
+    morphed = []
+    start, last = new[0]
+    n = 1
+    while n < len(new):
+        if _adjacent(datetime.strptime(new[n-1][1], constants.TIME_FORMAT),
+                datetime.strptime(new[n][0], constants.TIME_FORMAT)):
+            last = new[n][1]
+        else:
+            morphed.append((start, last))
+            start, last = new[n]
+        n += 1
+    morphed.append((start, last))
+    return morphed
+
 def _source_local():
     r''' Sources archive index file into LOCAL '''
     config = SafeConfigParser()
@@ -61,7 +98,7 @@ def _sync_local(dt_start_total, dt_end_total):
         if ts not in LOCAL:
             LOCAL[ts] = UPDATE[ts]
         else:
-            pass
+            LOCAL[ts] = _merge_indices(LOCAL[ts], UPDATE[ts])
         # Reindex archive index with new LOCAL indices
         config.remove_section(ts)
         config.add_section(ts)
