@@ -188,7 +188,7 @@ def _compute_gaps(ts, dt_start_total, dt_end_total):
         if start > last_avail + timedelta(days=1):
             gaps.append(
                     (last_avail + timedelta(days=1),
-                        start - timedelta(days=1)))
+                     start - timedelta(days=1)))
         if end > last_avail:
             last_avail = end
         if last_avail >= dt_end_total:
@@ -198,9 +198,23 @@ def _compute_gaps(ts, dt_start_total, dt_end_total):
 
     return gaps
 
+def _compute_filleds(gaps, dt_start_total, dt_end_total):
+    r'''
+    Compute filled intervals which can be retrieved locally
+    '''
+    if not gaps:
+        return [dt_start_total, dt_end_total]
 
+    filleds = []
+    # Compute filleds by taking the invert of all gaps
+    if gaps[0][0] != dt_start_total:
+        filleds.append((dt_start_total, gaps[0][0] - timedelta(days=1)))
 
+    last_gap_end = gaps[0][1]
+    for start, end in gaps[1:]:
+        filleds.append((last_gap_end + timedelta(days=1), start - timedelta(days=1)))
 
+    if gaps[-1][1] != dt_end_total:
+        filleds.append((gaps[-1][1] + timedelta(days=1), dt_end_total))
 
-
-
+    return filleds

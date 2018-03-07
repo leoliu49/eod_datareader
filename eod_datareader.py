@@ -16,6 +16,9 @@ from . import _web_datareader as web_datareader
 
 from . import constants
 
+
+HEADERS = constants.HEADERS
+
 def _get(ts, dt_start, dt_end, source):
     r'''
     Retrieved requested EOD finance data, either from current archive or
