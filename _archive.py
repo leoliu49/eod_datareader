@@ -15,6 +15,7 @@ ARCH_DIR/
 import csv
 import errno
 import os
+import pandas
 
 from ConfigParser import SafeConfigParser
 from datetime import datetime, timedelta
@@ -35,6 +36,12 @@ def _adjacent(dt_before=None, dt_after=None):
     if dt_after is None:
         return dt_before + timedelta(days=1)
     return (dt_after - dt_before == timedelta(days=1))
+
+def _date_inclusive(outer, inner):
+    r'''
+    Returns true if outer datetime interval is inclusive of inner datetime
+    '''
+    return (outer[0] <= inner[0]) and (outer[1] >= inner[1])
 
 def _merge_indices(local, update):
     r''' Merge sorted lists, then morph connected clusters together '''
@@ -167,6 +174,30 @@ def _save_local(df, ts, dt_start, dt_end):
         (dt_start.strftime(constants.TIME_FORMAT),
          dt_end.strftime(constants.TIME_FORMAT)))
 
+def _pull_local(ts, filleds):
+    r''' Pull data from local archive '''
+    if not filleds:
+        return None
+
+    out_dir = constants.ARCH_DIR + ts + '/'
+
+    index = 0
+    dfs = []
+    for start, end in LOCAL[ts]:
+        dt_start = datetime.strptime(start, constants.TIME_FORMAT)
+        dt_end = datetime.strptime(end, constants.TIME_FORMAT)
+        if _date_inclusive((dt_start, dt_end), filleds[index]):
+            df = pandas.read_csv('{}{}_to_{}.csv'.format(out_dir, start, end),
+                                 header=None, names=constants.HEADERS.HEADERS)
+            df = df.truncate(
+                before=filleds[index][0].strftime(constants.TIME_FORMAT),
+                after=filleds[index][1].strftime(constants.TIME_FORMAT))
+            dfs.append(df)
+            index += 1
+        if index >= len(filleds):
+            break
+    return dfs
+
 def _compute_gaps(ts, dt_start_total, dt_end_total):
     r'''
     Compute gaps in current archive which need to be retrieved online
@@ -213,6 +244,7 @@ def _compute_filleds(gaps, dt_start_total, dt_end_total):
     last_gap_end = gaps[0][1]
     for start, end in gaps[1:]:
         filleds.append((last_gap_end + timedelta(days=1), start - timedelta(days=1)))
+        last_gap_end = end
 
     if gaps[-1][1] != dt_end_total:
         filleds.append((gaps[-1][1] + timedelta(days=1), dt_end_total))
