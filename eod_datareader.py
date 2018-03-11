@@ -22,8 +22,28 @@ from . import constants
 HEADERS = constants.HEADERS
 
 
-def _merge(df_filleds, df_gaps):
-    return df_filleds, df_gaps
+def _merge(df_filleds, df_gaps, dt_filleds, dt_gaps):
+    df_merged = pandas.DataFrame()
+    f = 0
+    g = 0
+    f_len = len(df_filleds)
+    g_len = len(df_gaps)
+    while f < f_len and g < g_len:
+        f_s = dt_filleds[f]
+        g_s = dt_gaps[g]
+        if f_s < g_s:
+            df_merged = df_merged.append(df_filleds[f])
+            f += 1
+        else:
+            df_merged = df_merged.append(df_gaps[g])
+            g += 1
+    while f < f_len:
+        df_merged = df_merged.append(df_filleds[f])
+        f += 1
+    while g < g_len:
+        df_merged = df_merged.append(df_gaps[g])
+        g += 1
+    return df_merged
 
 def _get(ts, dt_start, dt_end, source):
     r'''
@@ -41,7 +61,7 @@ def _get(ts, dt_start, dt_end, source):
         archive._save_local(df, ts, dt_s, dt_e)
     archive._sync_local(dt_start.strftime(constants.TIME_FORMAT),
                         dt_end.strftime(constants.TIME_FORMAT))
-    return _merge(df_filleds, df_gaps)
+    return _merge(df_filleds, df_gaps, filleds, gaps)
 
 def set_archive_directory(dir_path):
     r''' Sets output archive directory '''

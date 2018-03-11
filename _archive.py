@@ -177,7 +177,7 @@ def _save_local(df, ts, dt_start, dt_end):
 def _pull_local(ts, filleds):
     r''' Pull data from local archive '''
     if not filleds:
-        return None
+        return []
 
     out_dir = constants.ARCH_DIR + ts + '/'
 
@@ -234,7 +234,7 @@ def _compute_filleds(gaps, dt_start_total, dt_end_total):
     Compute filled intervals which can be retrieved locally
     '''
     if not gaps:
-        return [dt_start_total, dt_end_total]
+        return [(dt_start_total, dt_end_total)]
 
     filleds = []
     # Compute filleds by taking the invert of all gaps
